@@ -2,22 +2,6 @@ name: Build Platforms
 
 on:
   workflow_dispatch:
-    inputs:
-      build_macos:
-        description: 'Build macOS'
-        required: true
-        default: true
-        type: boolean
-      build_windows:
-        description: 'Build Windows'
-        required: true
-        default: true
-        type: boolean
-      build_linux:
-        description: 'Build Linux'
-        required: true
-        default: true
-        type: boolean
   push:
     tags:
       - 'v*'
@@ -29,9 +13,8 @@ permissions:
   contents: write
 
 jobs:
-  # ========== macOS 构建 ==========
-  build-macos:
-    if: ${{ github.event_name == 'push' || inputs.build_macos }}
+  # ========== macOS Apple Silicon 构建 ==========
+  build-macos-arm64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +29,11 @@ jobs:
 
       - run: npm install
 
+      - name: Verify Apple Silicon runner
+        run: |
+          test "$(uname -m)" = "arm64"
+          node -e "if (process.arch !== 'arm64') process.exit(1)"
+
       # 设置 OpenClaw runtime (如果需要)
       - name: Setup OpenClaw Runtime
         run: |
@@ -55,8 +43,8 @@ jobs:
             echo "⚠ OpenClaw runtime not found, build may fail"
           fi
 
-      - name: Build macOS
-        run: npm run dist:mac
+      - name: Build macOS arm64
+        run: npm run dist:mac:arm64
         env:
           # 签名环境变量 (如果有证书)
           CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -67,81 +55,13 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-build
+          name: macos-arm64-build
           path: release/*.dmg
-          retention-days: 7
-
-  # ========== Windows 构建 ==========
-  build-windows:
-    if: ${{ github.event_name == 'push' || inputs.build_windows }}
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24.x'
-      - uses: actions/cache@v4
-        with:
-          path: ~\AppData\Local\npm-cache
-          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
-          restore-keys: npm-${{ runner.os }}-
-
-      - run: npm install
-
-      # Windows 需要 Python 运行时
-      - name: Setup Python Runtime
-        run: npm run setup:python-runtime
-        env:
-          LOBSTERAI_PORTABLE_PYTHON_ARCHIVE: ${{ secrets.WINDOWS_PYTHON_ARCHIVE }}
-
-      - name: Build Windows
-        run: npm run dist:win
-        env:
-          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: release/*.exe
-          retention-days: 7
-
-  # ========== Linux 构建 ==========
-  build-linux:
-    if: ${{ github.event_name == 'push' || inputs.build_linux }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24.x'
-      - uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
-          restore-keys: npm-${{ runner.os }}-
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libuuid1 libsecret-1-0
-
-      - run: npm install
-
-      - name: Build Linux
-        run: npm run dist:linux
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: |
-            release/*.AppImage
-            release/*.deb
           retention-days: 7
 
   # ========== 创建 Release ==========
   create-release:
-    needs: [build-macos, build-windows, build-linux]
+    needs: [build-macos-arm64]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -161,9 +81,7 @@ jobs:
 
           args=(
             "$TAG_NAME"
-            artifacts/macos-build/*.dmg
-            artifacts/windows-build/*.exe
-            artifacts/linux-build/*
+            artifacts/macos-arm64-build/*.dmg
             --draft
             --generate-notes
             --title "$TAG_NAME"

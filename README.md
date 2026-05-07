@@ -11,7 +11,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <br>
-  <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Public%20Build-macOS%20Apple%20Silicon-brightgreen?style=for-the-badge" alt="Public build">
   <br>
   <img src="https://img.shields.io/badge/Electron-40-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
@@ -34,7 +34,7 @@ Public desktop builds are published through GitHub Releases:
 - Website: [wesight.ai](https://wesight.ai/)
 - Latest release: [github.com/freestylefly/wesight/releases/latest](https://github.com/freestylefly/wesight/releases/latest)
 
-Release assets are intended for end users. CI artifacts are short-lived build outputs for maintainers to test before a release is published.
+Early public releases currently ship macOS Apple Silicon builds first. Release assets are intended for end users. CI artifacts are short-lived build outputs for maintainers to test before a release is published.
 
 ## Highlights
 
@@ -159,9 +159,9 @@ git tag v2026.4.8-alpha.1
 git push origin v2026.4.8-alpha.1
 ```
 
-3. The `Build Platforms` workflow builds macOS, Windows, and Linux packages.
+3. The `Build Platforms` workflow builds a macOS Apple Silicon package.
 4. Build artifacts are uploaded to the workflow run for temporary testing.
-5. A draft GitHub Release is created with the generated installers attached.
+5. A draft GitHub Release is created with the generated `.dmg` attached.
 6. Review the draft notes and assets, then publish the release from GitHub.
 
 The website download button can point to the latest release URL so users always land on the newest published build.
