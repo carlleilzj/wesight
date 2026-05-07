@@ -1,0 +1,229 @@
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+import { resolveRawApiConfig } from './claudeSettings';
+
+type LocalClaudeConfig = {
+  sourceName: string;
+  env: Record<string, unknown>;
+  meta: Record<string, unknown>;
+};
+
+export type LocalClaudeCodeProviderConfig = {
+  name: string;
+  settingsConfig: Record<string, unknown>;
+};
+
+export type LocalClaudeCodeEnvLoadResult = {
+  sourceName: string;
+  baseUrl: string;
+  model: string;
+  credentialSource: string | null;
+};
+
+const CLAUDE_ENV_KEYS = [
+  'ANTHROPIC_AUTH_TOKEN',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_BASE_URL',
+  'ANTHROPIC_MODEL',
+  'ANTHROPIC_REASONING_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  'ANTHROPIC_SMALL_FAST_MODEL',
+] as const;
+
+const INTERNAL_PROVIDER_META_KEY = '__wesightProviderMeta';
+
+const homeDir = (): string => os.homedir();
+
+const readJsonObject = (filePath: string): Record<string, unknown> | null => {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const parseJsonObject = (value: string | null | undefined): Record<string, unknown> => {
+  try {
+    const parsed = JSON.parse(value || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const getNestedRecord = (value: unknown, key: string): Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const nested = (value as Record<string, unknown>)[key];
+  return nested && typeof nested === 'object' && !Array.isArray(nested)
+    ? nested as Record<string, unknown>
+    : {};
+};
+
+const getString = (value: unknown): string => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const normalizeBaseUrlForMatch = (value: string): string => {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (!trimmed) return '';
+  try {
+    const url = new URL(trimmed);
+    url.hash = '';
+    url.search = '';
+    url.hostname = url.hostname.toLowerCase();
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    return trimmed.toLowerCase();
+  }
+};
+
+const baseUrlsMatch = (left: string, right: string): boolean => {
+  const normalizedLeft = normalizeBaseUrlForMatch(left);
+  const normalizedRight = normalizeBaseUrlForMatch(right);
+  return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight);
+};
+
+const readCurrentCcSwitchClaudeConfig = (): LocalClaudeConfig | null => {
+  const appDir = path.join(homeDir(), '.cc-switch');
+  const settingsPath = path.join(appDir, 'settings.json');
+  const dbPath = path.join(appDir, 'cc-switch.db');
+  if (!fs.existsSync(dbPath)) return null;
+
+  const settings = readJsonObject(settingsPath) ?? {};
+  const currentProviderId = getString(settings.currentProviderClaude)
+    || getString(settings.current_provider_claude);
+  let db: Database.Database | null = null;
+
+  try {
+    db = new Database(dbPath, { readonly: true, fileMustExist: true });
+    const provider = currentProviderId
+      ? db
+        .prepare('SELECT name, settings_config, meta FROM providers WHERE app_type = ? AND id = ? LIMIT 1')
+        .get('claude', currentProviderId) as { name?: string; settings_config?: string; meta?: string } | undefined
+      : db
+        .prepare('SELECT name, settings_config, meta FROM providers WHERE app_type = ? AND is_current = 1 LIMIT 1')
+        .get('claude') as { name?: string; settings_config?: string; meta?: string } | undefined;
+    if (!provider) return null;
+
+    return {
+      sourceName: provider.name || 'local provider',
+      env: getNestedRecord(parseJsonObject(provider.settings_config), 'env'),
+      meta: parseJsonObject(provider.meta),
+    };
+  } catch {
+    return null;
+  } finally {
+    try {
+      db?.close();
+    } catch {
+      // Ignore close errors from a read-only local config snapshot.
+    }
+  }
+};
+
+const readClaudeSettingsConfig = (): LocalClaudeConfig | null => {
+  const settingsPath = path.join(homeDir(), '.claude', 'settings.json');
+  const settings = readJsonObject(settingsPath);
+  if (!settings) return null;
+  return {
+    sourceName: 'Claude Code settings',
+    env: getNestedRecord(settings, 'env'),
+    meta: {},
+  };
+};
+
+const buildLocalClaudeConfigFromProvider = (
+  provider: LocalClaudeCodeProviderConfig | null | undefined,
+): LocalClaudeConfig | null => {
+  if (!provider) return null;
+  return {
+    sourceName: provider.name,
+    env: getNestedRecord(provider.settingsConfig, 'env'),
+    meta: getNestedRecord(provider.settingsConfig, INTERNAL_PROVIDER_META_KEY),
+  };
+};
+
+const pickCredentialForPrintMode = (
+  localEnv: Record<string, unknown>,
+  meta: Record<string, unknown>,
+): { value: string; source: string } | null => {
+  const apiKey = getString(localEnv.ANTHROPIC_API_KEY);
+  const authToken = getString(localEnv.ANTHROPIC_AUTH_TOKEN);
+  if (!apiKey && !authToken) return null;
+  if (apiKey && !authToken) return { value: apiKey, source: 'ANTHROPIC_API_KEY' };
+  if (!apiKey && authToken) return { value: authToken, source: 'ANTHROPIC_AUTH_TOKEN' };
+  if (apiKey === authToken) return { value: apiKey, source: 'ANTHROPIC_API_KEY' };
+
+  const localBaseUrl = getString(localEnv.ANTHROPIC_BASE_URL);
+  const wesightConfig = resolveRawApiConfig().config;
+  const apiKeyLooksInjected = Boolean(
+    wesightConfig?.apiKey
+    && apiKey === wesightConfig.apiKey
+    && !baseUrlsMatch(localBaseUrl, wesightConfig.baseURL),
+  );
+  const authTokenLooksInjected = Boolean(
+    wesightConfig?.apiKey
+    && authToken === wesightConfig.apiKey
+    && !baseUrlsMatch(localBaseUrl, wesightConfig.baseURL),
+  );
+
+  if (apiKeyLooksInjected && !authTokenLooksInjected) {
+    return { value: authToken, source: 'ANTHROPIC_AUTH_TOKEN' };
+  }
+  if (authTokenLooksInjected && !apiKeyLooksInjected) {
+    return { value: apiKey, source: 'ANTHROPIC_API_KEY' };
+  }
+
+  const configuredField = getString(meta.apiKeyField);
+  if (configuredField === 'ANTHROPIC_AUTH_TOKEN') {
+    return { value: authToken, source: 'ANTHROPIC_AUTH_TOKEN' };
+  }
+  return { value: apiKey, source: 'ANTHROPIC_API_KEY' };
+};
+
+export const applyLocalClaudeCodeEnvForPrintMode = (
+  env: Record<string, string | undefined>,
+  provider?: LocalClaudeCodeProviderConfig | null,
+): LocalClaudeCodeEnvLoadResult | null => {
+  const localConfig = buildLocalClaudeConfigFromProvider(provider)
+    ?? readCurrentCcSwitchClaudeConfig()
+    ?? readClaudeSettingsConfig();
+  if (!localConfig) return null;
+
+  for (const key of CLAUDE_ENV_KEYS) {
+    const value = getString(localConfig.env[key]);
+    if (value) {
+      env[key] = value;
+    }
+  }
+
+  const credential = pickCredentialForPrintMode(localConfig.env, localConfig.meta);
+  if (credential) {
+    // Claude Code --print currently reports ANTHROPIC_API_KEY as the key source.
+    // Mirror the selected local credential into both aliases for this subprocess only.
+    env.ANTHROPIC_API_KEY = credential.value;
+    env.ANTHROPIC_AUTH_TOKEN = credential.value;
+  }
+
+  console.log(`[ExternalAgentLocalEnv] loaded local Claude Code config for ${localConfig.sourceName}.`);
+  return {
+    sourceName: localConfig.sourceName,
+    baseUrl: getString(localConfig.env.ANTHROPIC_BASE_URL),
+    model: getString(localConfig.env.ANTHROPIC_MODEL)
+      || getString(localConfig.env.ANTHROPIC_DEFAULT_SONNET_MODEL)
+      || getString(localConfig.env.ANTHROPIC_DEFAULT_OPUS_MODEL)
+      || getString(localConfig.env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    credentialSource: credential?.source ?? null,
+  };
+};
