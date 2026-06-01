@@ -22,6 +22,7 @@ import {
   parseHermesDotenvText,
 } from './hermesConfig';
 import { readOpenClawGlobalConfig, summarizeOpenClawConfig } from './openclawSystemRuntime';
+import { resolveUserShellPath } from './coworkUtil';
 
 export type CliAppType = 'claude' | 'codex' | 'hermes' | 'openclaw' | 'opencode' | 'grok' | 'qwen' | 'deepseek_tui';
 
@@ -332,18 +333,13 @@ const resolveCommand = (command: string): { found: boolean; path: string | null;
 
   if (process.platform !== 'win32') {
     const shellPath = process.env.SHELL || '/bin/zsh';
+    const userPath = resolveUserShellPath() ?? process.env.PATH;
     const shellResult = spawnSync(shellPath, ['-lc', `command -v ${quoteForShell(command)}`], {
       encoding: 'utf8',
       timeout: 10_000,
       env: {
         ...process.env,
-        PATH: [
-          path.join(homeDir(), '.npm-global', 'bin'),
-          path.join(homeDir(), '.local', 'bin'),
-          '/opt/homebrew/bin',
-          '/usr/local/bin',
-          process.env.PATH ?? '',
-        ].join(path.delimiter),
+        PATH: userPath,
       },
     });
     if (shellResult.status === 0) {
