@@ -298,6 +298,17 @@ Search **苍何** on WeChat or scan the QR code below to follow Canghe's origina
   <img src="public/wechat-official-account.png" alt="Canghe WeChat Official Account" width="280">
 </p>
 
+## Acknowledgements
+
+WeSight is shaped by many excellent open-source projects and agent community practices. Special thanks to:
+
+- [LobsterAI](https://github.com/netease-youdao/LobsterAI) for inspiration around desktop personal assistant agents, README structure, and open-source launch practice.
+- [OpenClaw](https://github.com/openclaw/openclaw) for exploring local agent runtimes, gateways, and IM agent capabilities.
+- [Hermes Agent](https://github.com/NousResearch/hermes-agent) for local agent runtime, gateway, and model configuration ideas.
+- [Star-Office-UI](https://github.com/ringhyacinth/Star-Office-UI) for the pixel-style AI studio inspiration.
+- [SkillHub](https://skillhub.lol/skills) for ideas around skill discovery, installation, and marketplace flows.
+- The terminal-agent ecosystem around Claude Code, Codex, OpenCode, Qwen Code, DeepSeek-TUI, and the builders pushing local AI agent workflows forward.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
