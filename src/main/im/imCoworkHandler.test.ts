@@ -18,8 +18,12 @@ class FakeRuntime extends EventEmitter {
   stopSession(): void {}
   stopAllSessions(): void {}
   respondToPermission(): void {}
-  isSessionActive(): boolean { return false; }
-  getSessionConfirmationMode(): string { return 'text'; }
+  isSessionActive(): boolean {
+    return false;
+  }
+  getSessionConfirmationMode(): string {
+    return 'text';
+  }
 }
 
 interface FakeSession {
@@ -47,7 +51,12 @@ class FakeCoworkStore {
     };
   }
 
-  createSession(title: string, cwd: string, systemPrompt: string, executionMode: string): FakeSession {
+  createSession(
+    title: string,
+    cwd: string,
+    systemPrompt: string,
+    executionMode: string,
+  ): FakeSession {
     const session: FakeSession = {
       id: `session-${++this.sessionCounter}`,
       title,
@@ -64,6 +73,26 @@ class FakeCoworkStore {
 
   getSession(id: string): FakeSession | null {
     return this.sessions.get(id) ?? null;
+  }
+
+  getAgent(id: string) {
+    return {
+      id,
+      name: id,
+      description: '',
+      systemPrompt: '',
+      identity: '',
+      model: '',
+      agentEngine: 'codex',
+      icon: '',
+      skillIds: [],
+      enabled: true,
+      isDefault: id === 'main',
+      source: 'preset',
+      presetId: id,
+      createdAt: 0,
+      updatedAt: 0,
+    };
   }
 
   updateSession(id: string, updates: Partial<FakeSession>): void {
@@ -100,16 +129,22 @@ class FakeIMStore {
   }
 
   getSessionMapping(imConversationId: string, platform: Platform): IMSessionMapping | null {
-    return this.mappings.find((entry) => (
-      entry.imConversationId === imConversationId && entry.platform === platform
-    )) ?? null;
+    return (
+      this.mappings.find(
+        entry => entry.imConversationId === imConversationId && entry.platform === platform,
+      ) ?? null
+    );
   }
 
   getSessionMappingByCoworkSessionId(coworkSessionId: string): IMSessionMapping | null {
-    return this.mappings.find((entry) => entry.coworkSessionId === coworkSessionId) ?? null;
+    return this.mappings.find(entry => entry.coworkSessionId === coworkSessionId) ?? null;
   }
 
-  createSessionMapping(imConversationId: string, platform: Platform, coworkSessionId: string): IMSessionMapping {
+  createSessionMapping(
+    imConversationId: string,
+    platform: Platform,
+    coworkSessionId: string,
+  ): IMSessionMapping {
     const mapping: IMSessionMapping = {
       imConversationId,
       platform,
@@ -129,9 +164,9 @@ class FakeIMStore {
   }
 
   deleteSessionMapping(imConversationId: string, platform: Platform): void {
-    this.mappings = this.mappings.filter((entry) => (
-      entry.imConversationId !== imConversationId || entry.platform !== platform
-    ));
+    this.mappings = this.mappings.filter(
+      entry => entry.imConversationId !== imConversationId || entry.platform !== platform,
+    );
   }
 }
 
@@ -173,7 +208,7 @@ test('IM completion replies with only the current turn for a reused Feishu sessi
   });
 
   const pendingReply = handler.processMessage(createFeishuMessage('你好'));
-  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
 
   coworkStore.addMessage(session.id, {
     type: 'user',

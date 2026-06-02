@@ -3,8 +3,31 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const skillModule = require('../dist-electron/main/skillManager.js');
+const Module = require('node:module');
+const originalLoad = Module._load;
+Module._load = function mockElectron(request, parent, isMain) {
+  if (request === 'electron') {
+    return {
+      app: {
+        isPackaged: false,
+        getAppPath: () => process.cwd(),
+        getPath: () => process.cwd(),
+      },
+      BrowserWindow: { getAllWindows: () => [] },
+      session: {
+        defaultSession: {
+          fetch: async () => {
+            throw new Error('unexpected electron fetch in test');
+          },
+        },
+      },
+    };
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
+const skillModule = require('../dist-electron/src/main/skillManager.js');
 const testUtils = skillModule.__skillManagerTestUtils;
+Module._load = originalLoad;
 
 if (!testUtils) {
   throw new Error('__skillManagerTestUtils is not available');
@@ -24,7 +47,8 @@ test('parseFrontmatter: simple key-value pairs', () => {
 });
 
 test('parseFrontmatter: block scalar with pipe (|)', () => {
-  const raw = '---\nname: demo\ndescription: |\n  A multi-line description.\n  Second line.\n---\n# Content\n';
+  const raw =
+    '---\nname: demo\ndescription: |\n  A multi-line description.\n  Second line.\n---\n# Content\n';
   const { frontmatter, content } = parseFrontmatter(raw);
   assert.equal(frontmatter.name, 'demo');
   assert.equal(frontmatter.description, 'A multi-line description.\nSecond line.\n');
@@ -46,7 +70,8 @@ test('parseFrontmatter: quoted strings', () => {
 });
 
 test('parseFrontmatter: nested objects', () => {
-  const raw = '---\nname: demo\nmetadata:\n  short-description: A short desc\n  version: 2\n---\n# Content\n';
+  const raw =
+    '---\nname: demo\nmetadata:\n  short-description: A short desc\n  version: 2\n---\n# Content\n';
   const { frontmatter } = parseFrontmatter(raw);
   assert.equal(frontmatter.name, 'demo');
   assert.deepEqual(frontmatter.metadata, { 'short-description': 'A short desc', version: 2 });
@@ -208,6 +233,9 @@ test('integration: skill with block scalar description', () => {
 
   const { frontmatter, content } = parseFrontmatter(raw);
   assert.equal(frontmatter.name, 'demo');
-  assert.equal(String(frontmatter.description || '').trim(), 'A multi-line description.\nSecond line.');
+  assert.equal(
+    String(frontmatter.description || '').trim(),
+    'A multi-line description.\nSecond line.',
+  );
   assert.ok(content.includes('# Demo Skill'));
 });

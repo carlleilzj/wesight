@@ -1,7 +1,13 @@
-import { test, expect, describe, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+vi.mock('electron', () => ({
+  app: {
+    getPath: () => process.cwd(),
+  },
+}));
 
 describe('enterpriseConfigSync', () => {
   let tmpDir: string;
@@ -30,7 +36,7 @@ describe('enterpriseConfigSync', () => {
         name: 'Test',
         ui: { hideTabs: [], disableUpdate: false },
         sync: { openclaw: false, skills: false, agents: false, mcp: false },
-      })
+      }),
     );
     const raw = fs.readFileSync(path.join(manifestDir, 'manifest.json'), 'utf-8');
     const manifest = JSON.parse(raw);
@@ -42,7 +48,9 @@ describe('enterpriseConfigSync', () => {
     const appConfig = {
       api: { key: 'sk-test', baseUrl: 'https://api.example.com' },
       model: { defaultModel: 'test-model', defaultModelProvider: 'test' },
-      providers: { test: { enabled: true, apiKey: 'sk-test', baseUrl: 'https://api.example.com', models: [] } },
+      providers: {
+        test: { enabled: true, apiKey: 'sk-test', baseUrl: 'https://api.example.com', models: [] },
+      },
       theme: 'dark',
       language: 'zh',
     };
@@ -61,10 +69,16 @@ describe('enterpriseConfigSync', () => {
 
   test('channel key mapping covers all 10 platforms', () => {
     const map: Record<string, string> = {
-      telegram: 'telegramOpenClaw', discord: 'discordOpenClaw',
-      feishu: 'feishuOpenClaw', 'dingtalk-connector': 'dingtalkOpenClaw',
-      qqbot: 'qq', wecom: 'wecomOpenClaw', 'moltbot-popo': 'popo',
-      nim: 'nim', 'openclaw-weixin': 'weixin', xiaomifeng: 'xiaomifeng',
+      telegram: 'telegramOpenClaw',
+      discord: 'discordOpenClaw',
+      feishu: 'feishuOpenClaw',
+      'dingtalk-connector': 'dingtalkOpenClaw',
+      qqbot: 'qq',
+      wecom: 'wecomOpenClaw',
+      'moltbot-popo': 'popo',
+      nim: 'nim',
+      'openclaw-weixin': 'weixin',
+      xiaomifeng: 'xiaomifeng',
     };
     expect(Object.keys(map)).toHaveLength(10);
     expect(map['telegram']).toBe('telegramOpenClaw');

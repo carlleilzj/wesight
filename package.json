@@ -67,6 +67,8 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "test": "vitest run",
+    "test:node": "npm run compile:electron && node --test tests/*.test.mjs",
+    "test:memory": "npm run compile:electron && node --test tests/memoryFileStructure.test.mjs",
     "pretest": "npm rebuild better-sqlite3",
     "preview": "vite preview",
     "compile:electron": "tsc --project electron-tsconfig.json",

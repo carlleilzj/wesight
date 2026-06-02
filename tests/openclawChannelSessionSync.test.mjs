@@ -10,7 +10,7 @@ const {
   isManagedSessionKey,
   parseChannelSessionKey,
   parseManagedSessionKey,
-} = require('../dist-electron/main/libs/openclawChannelSessionSync.js');
+} = require('../dist-electron/src/main/libs/openclawChannelSessionSync.js');
 
 function createSync() {
   return new OpenClawChannelSessionSync({
@@ -57,10 +57,7 @@ test('buildManagedSessionKey emits canonical local session keys', () => {
     buildManagedSessionKey('abc-123'),
     `agent:${DEFAULT_MANAGED_AGENT_ID}:wesight:abc-123`,
   );
-  assert.equal(
-    buildManagedSessionKey('abc-123', 'secondary'),
-    'agent:secondary:wesight:abc-123',
-  );
+  assert.equal(buildManagedSessionKey('abc-123', 'secondary'), 'agent:secondary:wesight:abc-123');
 });
 
 test('parseChannelSessionKey ignores managed local session keys', () => {

@@ -21,9 +21,11 @@ Module._load = function patchedModuleLoad(request, parent, isMain) {
   return originalModuleLoad.call(this, request, parent, isMain);
 };
 
-const { OpenClawRuntimeAdapter } = require('../dist-electron/main/libs/agentEngine/openclawRuntimeAdapter.js');
+const {
+  OpenClawRuntimeAdapter,
+} = require('../dist-electron/src/main/libs/agentEngine/openclawRuntimeAdapter.js');
 
-const createStore = (messages) => {
+const createStore = messages => {
   const session = {
     id: 'session-1',
     title: 'Test Session',
@@ -47,7 +49,7 @@ const createStore = (messages) => {
     getReplaceCallCount: () => replaceCallCount,
     getLastReplaceArgs: () => lastReplaceArgs,
     store: {
-      getSession: (sessionId) => (sessionId === session.id ? session : null),
+      getSession: sessionId => (sessionId === session.id ? session : null),
       addMessage: (sessionId, message) => {
         assert.equal(sessionId, session.id);
         const created = {
@@ -65,7 +67,7 @@ const createStore = (messages) => {
         lastReplaceArgs = { sessionId, authoritative };
         // Simulate: remove old user/assistant, insert new ones
         session.messages = session.messages.filter(
-          (m) => m.type !== 'user' && m.type !== 'assistant',
+          m => m.type !== 'user' && m.type !== 'assistant',
         );
         for (const entry of authoritative) {
           session.messages.push({
@@ -106,7 +108,11 @@ test('reconcileWithHistory: already in sync — skips replace', async () => {
 
   await adapter.reconcileWithHistory(session.id, 'managed:session-1');
 
-  assert.equal(getReplaceCallCount(), 0, 'should not call replaceConversationMessages when in sync');
+  assert.equal(
+    getReplaceCallCount(),
+    0,
+    'should not call replaceConversationMessages when in sync',
+  );
   assert.equal(session.messages.length, 2);
 });
 
@@ -272,7 +278,9 @@ test('reconcileWithHistory: gateway error — does not crash', async () => {
   adapter.gatewayClient = {
     start: () => {},
     stop: () => {},
-    request: async () => { throw new Error('Network timeout'); },
+    request: async () => {
+      throw new Error('Network timeout');
+    },
   };
 
   // Should not throw

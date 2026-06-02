@@ -3,11 +3,23 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const Module = require('node:module');
+const originalLoad = Module._load;
+Module._load = function mockElectron(request, parent, isMain) {
+  if (request === 'electron') {
+    return { BrowserWindow: { getAllWindows: () => [] } };
+  }
+  if (request === '@electron/remote') {
+    return { session: { defaultSession: {} } };
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
 const {
   mapGatewayJob,
   mapGatewayRun,
   mapGatewayTaskState,
-} = require('../dist-electron/main/libs/cronJobService.js');
+} = require('../dist-electron/src/scheduledTask/cronJobService.js');
+Module._load = originalLoad;
 
 test('mapGatewayTaskState marks running jobs as running and preserves counters', () => {
   const state = mapGatewayTaskState({

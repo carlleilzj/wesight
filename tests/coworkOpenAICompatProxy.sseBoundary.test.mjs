@@ -3,8 +3,25 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const proxyModule = require('../dist-electron/main/libs/coworkOpenAICompatProxy.js');
+const Module = require('node:module');
+const originalLoad = Module._load;
+Module._load = function mockElectron(request, parent, isMain) {
+  if (request === 'electron') {
+    return {
+      session: {
+        defaultSession: {
+          fetch: async () => {
+            throw new Error('unexpected electron fetch in test');
+          },
+        },
+      },
+    };
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
+const proxyModule = require('../dist-electron/src/main/libs/coworkOpenAICompatProxy.js');
 const testUtils = proxyModule.__openAICompatProxyTestUtils;
+Module._load = originalLoad;
 
 if (!testUtils?.findSSEPacketBoundary) {
   throw new Error('findSSEPacketBoundary is not available in __openAICompatProxyTestUtils');

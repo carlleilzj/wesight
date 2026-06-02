@@ -1,12 +1,19 @@
-import { test, expect } from 'vitest';
-import { makeTask, makeModel } from './fixtures';
-import { TaskModelMapper } from './modelMapper';
-import { ManualTaskPolicy } from './policies/manualPolicy';
-import { CoworkTaskPolicy } from './policies/coworkPolicy';
+import { expect,test } from 'vitest';
+
 import {
-  OriginKind, BindingKind, ScheduleKind, PayloadKind,
-  DeliveryMode, DeliveryChannel, SessionTarget, WakeMode,
+  BindingKind,
+  DeliveryChannel,
+  DeliveryMode,
+  OriginKind,
+  PayloadKind,
+  ScheduleKind,
+  SessionTarget,
+  WakeMode,
 } from './constants';
+import { makeModel,makeTask } from './fixtures';
+import { TaskModelMapper } from './modelMapper';
+import { CoworkTaskPolicy } from './policies/coworkPolicy';
+import { ManualTaskPolicy } from './policies/manualPolicy';
 
 const mapper = new TaskModelMapper();
 const manualPolicy = new ManualTaskPolicy();
@@ -40,7 +47,10 @@ test('mapper.fromWire: preserves all wire fields', () => {
     payload: { kind: PayloadKind.AgentTurn, message: 'work', timeoutSeconds: 120 },
     delivery: { mode: DeliveryMode.Announce, channel: 'feishu' },
   });
-  const model = mapper.fromWire(wire, { origin: { kind: OriginKind.Manual }, binding: { kind: BindingKind.NewSession } });
+  const model = mapper.fromWire(wire, {
+    origin: { kind: OriginKind.Manual },
+    binding: { kind: BindingKind.NewSession },
+  });
   expect(model.name).toBe('My Task');
   expect(model.description).toBe('Test desc');
   expect(model.schedule).toEqual({ kind: ScheduleKind.Cron, expr: '*/5 * * * *' });
@@ -65,7 +75,7 @@ test('mapper.toWireInput: ui_session binding -> managed sessionKey', () => {
     binding: { kind: BindingKind.UISession, sessionId: 'sess-x' },
   });
   const wire = mapper.toWireInput(model, coworkPolicy);
-  expect(wire.sessionKey).toBe('agent:main:lobsterai:sess-x');
+  expect(wire.sessionKey).toBe('agent:main:wesight:sess-x');
   expect(wire.sessionTarget).toBe(SessionTarget.Main);
 });
 
@@ -96,7 +106,10 @@ test('mapper.toWireInput: passes through non-binding fields', () => {
 });
 
 test('mapper.createDraft: from manual origin has valid defaults', () => {
-  const draft = mapper.createDraft({ kind: OriginKind.Manual }, { sessionTarget: SessionTarget.Isolated, wakeMode: WakeMode.Now });
+  const draft = mapper.createDraft(
+    { kind: OriginKind.Manual },
+    { sessionTarget: SessionTarget.Isolated, wakeMode: WakeMode.Now },
+  );
   expect(draft.id.startsWith('draft-')).toBeTruthy();
   expect(draft.origin.kind).toBe(OriginKind.Manual);
   expect(draft.binding.kind).toBe(BindingKind.NewSession);

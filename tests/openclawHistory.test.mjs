@@ -8,7 +8,7 @@ const {
   extractGatewayHistoryEntry,
   extractGatewayHistoryEntries,
   buildScheduledReminderSystemMessage,
-} = require('../dist-electron/main/libs/openclawHistory.js');
+} = require('../dist-electron/src/main/libs/openclawHistory.js');
 
 test('extractGatewayMessageText joins text content blocks', () => {
   const text = extractGatewayMessageText({
@@ -25,9 +25,7 @@ test('extractGatewayMessageText joins text content blocks', () => {
 test('extractGatewayHistoryEntry keeps system messages', () => {
   const entry = extractGatewayHistoryEntry({
     role: 'system',
-    content: [
-      { type: 'text', text: 'Reminder fired' },
-    ],
+    content: [{ type: 'text', text: 'Reminder fired' }],
   });
 
   assert.deepEqual(entry, {

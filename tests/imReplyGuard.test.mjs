@@ -7,7 +7,7 @@ const {
   analyzeIMReply,
   UNSCHEDULED_REMINDER_FAILURE_REPLY,
   FAILED_REMINDER_FAILURE_REPLY,
-} = require('../dist-electron/main/im/imReplyGuard.js');
+} = require('../dist-electron/src/main/im/imReplyGuard.js');
 
 test('guards IM reminder commitment when no cron.add succeeded', () => {
   const analysis = analyzeIMReply([

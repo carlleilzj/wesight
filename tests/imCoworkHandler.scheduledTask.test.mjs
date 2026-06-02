@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { IMCoworkHandler } = require('../dist-electron/main/im/imCoworkHandler.js');
+const { IMCoworkHandler } = require('../dist-electron/src/main/im/imCoworkHandler.js');
 
 class FakeRuntime extends EventEmitter {
   constructor() {
@@ -24,8 +24,12 @@ class FakeRuntime extends EventEmitter {
   stopSession() {}
   stopAllSessions() {}
   respondToPermission() {}
-  isSessionActive() { return false; }
-  getSessionConfirmationMode() { return 'text'; }
+  isSessionActive() {
+    return false;
+  }
+  getSessionConfirmationMode() {
+    return 'text';
+  }
 }
 
 class FakeCoworkStore {
@@ -65,6 +69,26 @@ class FakeCoworkStore {
     return this.sessions.get(id) || null;
   }
 
+  getAgent(id) {
+    return {
+      id,
+      name: id,
+      description: '',
+      systemPrompt: '',
+      identity: '',
+      model: '',
+      agentEngine: this.config.agentEngine,
+      icon: '',
+      skillIds: [],
+      enabled: true,
+      isDefault: id === 'main',
+      source: 'preset',
+      presetId: id,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+  }
+
   updateSession(id, updates) {
     const session = this.sessions.get(id);
     if (!session) return;
@@ -101,13 +125,15 @@ class FakeIMStore {
   }
 
   getSessionMapping(imConversationId, platform) {
-    return this.mappings.find((entry) => (
-      entry.imConversationId === imConversationId && entry.platform === platform
-    )) || null;
+    return (
+      this.mappings.find(
+        entry => entry.imConversationId === imConversationId && entry.platform === platform,
+      ) || null
+    );
   }
 
   getSessionMappingByCoworkSessionId(coworkSessionId) {
-    return this.mappings.find((entry) => entry.coworkSessionId === coworkSessionId) || null;
+    return this.mappings.find(entry => entry.coworkSessionId === coworkSessionId) || null;
   }
 
   createSessionMapping(imConversationId, platform, coworkSessionId) {
@@ -130,9 +156,9 @@ class FakeIMStore {
   }
 
   deleteSessionMapping(imConversationId, platform) {
-    this.mappings = this.mappings.filter((entry) => (
-      entry.imConversationId !== imConversationId || entry.platform !== platform
-    ));
+    this.mappings = this.mappings.filter(
+      entry => entry.imConversationId !== imConversationId || entry.platform !== platform,
+    );
   }
 }
 
@@ -172,7 +198,7 @@ test('IM scheduled-task requests bypass agent execution and create a real cron.a
       payloadText: '⏰ 提醒：喝水',
       confirmationText: '好的，已设置好提醒！2分钟后（16:30）会提醒你喝水。',
     }),
-    createScheduledTask: async (params) => {
+    createScheduledTask: async params => {
       createdParams = params;
       return {
         id: 'job-1',
@@ -197,7 +223,7 @@ test('IM scheduled-task requests bypass agent execution and create a real cron.a
   const [session] = [...coworkStore.sessions.values()];
   assert.ok(session);
   assert.deepEqual(
-    session.messages.map((message) => message.type),
+    session.messages.map(message => message.type),
     ['user', 'tool_use', 'tool_result', 'assistant'],
   );
   assert.equal(session.messages[1].metadata.toolName, 'cron');
@@ -229,7 +255,7 @@ test('async reminder turns on IM-created sessions relay back to the original IM 
       payloadText: '⏰ 提醒：喝水',
       confirmationText: '好的，已设置好提醒！2分钟后（16:30）会提醒你喝水。',
     }),
-    createScheduledTask: async (params) => ({
+    createScheduledTask: async params => ({
       id: 'job-1',
       name: params.request.taskName,
       agentId: 'main',
@@ -262,7 +288,7 @@ test('async reminder turns on IM-created sessions relay back to the original IM 
   });
   runtime.emit('complete', session.id, null);
 
-  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
 
   assert.deepEqual(relayedReplies, [
     {
@@ -310,7 +336,7 @@ test('async reminder turns on channel-synced sessions are tracked lazily and rel
   });
   runtime.emit('complete', session.id, null);
 
-  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
 
   assert.deepEqual(relayedReplies, [
     {
@@ -336,7 +362,7 @@ test('falls back to normal agent execution when detector does not recognize a sc
   });
 
   const pending = handler.processMessage(createMessage({ content: '帮我总结一下今天的会议纪要' }));
-  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
 
   assert.equal(runtime.startCalls.length, 1);
   assert.equal(runtime.startCalls[0].prompt, '帮我总结一下今天的会议纪要');

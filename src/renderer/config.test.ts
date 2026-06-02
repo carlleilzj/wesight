@@ -1,9 +1,6 @@
-import { test, expect } from 'vitest';
-import {
-  isCustomProvider,
-  getCustomProviderDefaultName,
-  getProviderDisplayName,
-} from './config';
+import { expect,test } from 'vitest';
+
+import { getCustomProviderDefaultName, getProviderDisplayName,isCustomProvider } from './config';
 
 test('isCustomProvider: custom_0 is custom', () => {
   expect(isCustomProvider('custom_0')).toBe(true);
@@ -46,7 +43,7 @@ test('getCustomProviderDefaultName: custom_42 -> Custom42', () => {
 });
 
 test('getProviderDisplayName: built-in provider capitalizes first letter', () => {
-  expect(getProviderDisplayName('openai')).toBe('Openai');
+  expect(getProviderDisplayName('openai')).toBe('OpenAI');
 });
 
 test('getProviderDisplayName: built-in provider with no config', () => {

@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const {
   buildOpenClawLocalTimeContextPrompt,
-} = require('../dist-electron/main/libs/openclawLocalTimeContextPrompt.js');
+} = require('../dist-electron/src/main/libs/openclawLocalTimeContextPrompt.js');
 
 test('openclaw local time context prompt makes future at-timestamps explicit', () => {
   const now = new Date('2026-03-15T08:28:00.000Z');
