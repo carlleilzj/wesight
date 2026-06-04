@@ -60,8 +60,8 @@ resolve_http_node_runtime() {
     return 0
   fi
 
-  if [ -n "${LOBSTERAI_ELECTRON_PATH:-}" ] && [ -x "${LOBSTERAI_ELECTRON_PATH}" ]; then
-    HTTP_NODE_CMD="$LOBSTERAI_ELECTRON_PATH"
+  if [ -n "${WESIGHT_ELECTRON_PATH:-}" ] && [ -x "${WESIGHT_ELECTRON_PATH}" ]; then
+    HTTP_NODE_CMD="$WESIGHT_ELECTRON_PATH"
     HTTP_NODE_ARGS=()
     HTTP_NODE_ENV_PREFIX=("ELECTRON_RUN_AS_NODE=1")
     return 0

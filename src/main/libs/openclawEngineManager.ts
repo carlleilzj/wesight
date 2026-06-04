@@ -565,7 +565,7 @@ export class OpenClawEngineManager extends EventEmitter {
       ...process.env,
       PATH: buildOpenClawCommandPath(),
       SKILLS_ROOT: skillsRoot,
-      LOBSTERAI_SKILLS_ROOT: skillsRoot,
+      WESIGHT_SKILLS_ROOT: skillsRoot,
       OPENCLAW_CONFIG_PATH: runtime.configPath,
       OPENCLAW_GATEWAY_TOKEN: token,
       OPENCLAW_GATEWAY_PORT: String(port),

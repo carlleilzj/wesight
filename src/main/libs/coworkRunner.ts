@@ -1709,12 +1709,12 @@ export class CoworkRunner extends EventEmitter {
 
     // Log MCP-relevant environment for debugging
     coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: isPackaged=${app.isPackaged}, platform=${process.platform}, arch=${process.arch}`);
-    coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: LOBSTERAI_ELECTRON_PATH=${envVars.LOBSTERAI_ELECTRON_PATH || '(not set)'}`);
+    coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: WESIGHT_ELECTRON_PATH=${envVars.WESIGHT_ELECTRON_PATH || '(not set)'}`);
     coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: ELECTRON_RUN_AS_NODE=${envVars.ELECTRON_RUN_AS_NODE || '(not set)'}`);
     coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: NODE_PATH=${envVars.NODE_PATH || '(not set)'}`);
     coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: HOME=${envVars.HOME || '(not set)'}`);
     coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: TMPDIR=${envVars.TMPDIR || '(not set)'}`);
-    coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: LOBSTERAI_NPM_BIN_DIR=${envVars.LOBSTERAI_NPM_BIN_DIR || '(not set)'}`);
+    coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: WESIGHT_NPM_BIN_DIR=${envVars.WESIGHT_NPM_BIN_DIR || '(not set)'}`);
     coworkLog('INFO', 'runClaudeCodeLocal', `MCP env: claudeCodePath=${claudeCodePath}`);
     // Log full PATH split by delimiter
     const pathEntries = (envVars.PATH || '').split(path.delimiter);
@@ -1734,8 +1734,8 @@ export class CoworkRunner extends EventEmitter {
     // On Windows, check that git-bash is available before attempting to start.
     // Claude Code CLI requires git-bash for shell tool execution.
     if (process.platform === 'win32' && !envVars.CLAUDE_CODE_GIT_BASH_PATH) {
-      const bashResolutionDiagnostic = typeof envVars.LOBSTERAI_GIT_BASH_RESOLUTION_ERROR === 'string'
-        ? envVars.LOBSTERAI_GIT_BASH_RESOLUTION_ERROR.trim()
+      const bashResolutionDiagnostic = typeof envVars.WESIGHT_GIT_BASH_RESOLUTION_ERROR === 'string'
+        ? envVars.WESIGHT_GIT_BASH_RESOLUTION_ERROR.trim()
         : '';
       const errorMsg = 'Windows local execution requires a healthy Git Bash runtime, but no valid bash was resolved. '
         + 'This may be caused by missing bundled PortableGit or a conflicting system bash that cannot run cygpath. '
@@ -1882,15 +1882,15 @@ export class CoworkRunner extends EventEmitter {
         const useElectronShim =
           process.platform === 'win32'
           || isPackagedDarwin
-          || spawnOptions.env?.LOBSTERAI_NODE_SHIM_ACTIVE === '1';
+          || spawnOptions.env?.WESIGHT_NODE_SHIM_ACTIVE === '1';
         const spawnEnv: NodeJS.ProcessEnv = {
           ...(spawnOptions.env ?? {}),
           ELECTRON_RUN_AS_NODE: '1',
         };
         if (useElectronShim) {
-          spawnEnv.LOBSTERAI_ELECTRON_PATH = spawnOptions.env?.LOBSTERAI_ELECTRON_PATH || electronNodeRuntimePath;
+          spawnEnv.WESIGHT_ELECTRON_PATH = spawnOptions.env?.WESIGHT_ELECTRON_PATH || electronNodeRuntimePath;
         } else {
-          delete spawnEnv.LOBSTERAI_ELECTRON_PATH;
+          delete spawnEnv.WESIGHT_ELECTRON_PATH;
         }
 
         let command = spawnOptions.command || 'node';
@@ -1905,11 +1905,11 @@ export class CoworkRunner extends EventEmitter {
           || normalizedCommand.endsWith('/node.cmd');
         if (process.platform === 'win32' && isNodeLikeCommand) {
           command = electronNodeRuntimePath;
-          spawnEnv.LOBSTERAI_ELECTRON_PATH = electronNodeRuntimePath;
+          spawnEnv.WESIGHT_ELECTRON_PATH = electronNodeRuntimePath;
           coworkLog('INFO', 'runClaudeCodeLocal', `Rewrote Windows SDK command "${spawnOptions.command || 'node'}" to Electron runtime: ${electronNodeRuntimePath}`);
         } else if (isPackagedDarwin && isNodeLikeCommand) {
           command = electronNodeRuntimePath;
-          spawnEnv.LOBSTERAI_ELECTRON_PATH = electronNodeRuntimePath;
+          spawnEnv.WESIGHT_ELECTRON_PATH = electronNodeRuntimePath;
           coworkLog('INFO', 'runClaudeCodeLocal', `Rewrote packaged macOS SDK command "${spawnOptions.command || 'node'}" to Electron helper runtime: ${electronNodeRuntimePath}`);
         }
 
@@ -1929,7 +1929,7 @@ export class CoworkRunner extends EventEmitter {
           const pointsToAppExecutable = Array.from(commandCandidates).some((candidate) => appExecCandidates.has(candidate));
           if (pointsToAppExecutable) {
             command = electronNodeRuntimePath;
-            spawnEnv.LOBSTERAI_ELECTRON_PATH = electronNodeRuntimePath;
+            spawnEnv.WESIGHT_ELECTRON_PATH = electronNodeRuntimePath;
             coworkLog('WARN', 'runClaudeCodeLocal', 'SDK spawner command points to app executable; rewriting to Electron helper runtime');
           }
         }
@@ -2138,14 +2138,14 @@ export class CoworkRunner extends EventEmitter {
 
                   if (process.platform === 'win32' && app.isPackaged && effectiveStdioCommand) {
                     const normalizedCommand = effectiveStdioCommand.trim().toLowerCase();
-                    const npmBinDir = envVars.LOBSTERAI_NPM_BIN_DIR;
+                    const npmBinDir = envVars.WESIGHT_NPM_BIN_DIR;
                     const npxCliJs = npmBinDir ? path.join(npmBinDir, 'npx-cli.js') : '';
                     const npmCliJs = npmBinDir ? path.join(npmBinDir, 'npm-cli.js') : '';
 
                     const withElectronNodeEnv = (base: Record<string, string> | undefined): Record<string, string> => ({
                       ...(base || {}),
                       ELECTRON_RUN_AS_NODE: '1',
-                      LOBSTERAI_ELECTRON_PATH: electronNodeRuntimePath,
+                      WESIGHT_ELECTRON_PATH: electronNodeRuntimePath,
                     });
 
                     if (
@@ -2218,7 +2218,7 @@ export class CoworkRunner extends EventEmitter {
                       stdioEnv = {
                         ...(stdioEnv || {}),
                         ELECTRON_RUN_AS_NODE: '1',
-                        LOBSTERAI_ELECTRON_PATH: electronNodeRuntimePath,
+                        WESIGHT_ELECTRON_PATH: electronNodeRuntimePath,
                       };
                       coworkLog('WARN', 'runClaudeCodeLocal', `MCP "${serverKey}": command points to app executable; rewriting command to Electron helper runtime`);
                     }
